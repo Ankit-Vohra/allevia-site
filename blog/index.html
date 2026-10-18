@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>One brain per business: building Allevia on FalkorDB</title>
+  <meta name="description" content="How we built Allevia, a company brain for founders, on FalkorDB in four days: why a graph, how answers are found, memory with two clocks, and what we learned.">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <script type="module" crossorigin src="../assets/entry-caSUvK1j.js"></script>
+  <script type="module" crossorigin src="../assets/preload-helper-Br-tDu84.js"></script>
+  <script type="module" crossorigin src="../assets/page-mNWTAKRM.js"></script>
+  <link rel="stylesheet" crossorigin href="../assets/entry-CpO5kDHT.css">
+  <link rel="stylesheet" crossorigin href="../assets/preload-helper-BDzrhCSt.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+<header class="nav" data-nav>
+  <div class="wrap nav__in">
+    <a class="brand" href="../" aria-label="Allevia, home">allevia</a>
+    <nav class="nav__links" id="site-nav" aria-label="Main"><a href="../product/">Product</a><a href="../integrations/">Integrations</a><a href="../team/">Team</a><a href="../security/">Security</a></nav>
+    <a class="btn btn-gold btn-sm nav__cta" href="../contact/#snapshot">Get a free Brain Snapshot</a>
+    <button class="nav__menu" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menu" data-nav-menu><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5.5h12M3 9h12M3 12.5h12"/></svg></button>
+  </div>
+</header>
+  <main id="main">
+    <section class="page-head blog__head" aria-labelledby="h1"><div class="wrap"><h1 id="h1" class="page-h1 blog__h1">One brain per business: building Allevia on FalkorDB</h1>
+<p class="legal__date blog__byline">Ankit Vohra · 18 October 2026 · 15 min read</p>
+<figure class="blog__cover"><img src="../assets/pixel-office-BdY-wIlU.jpg" alt="The pixel office in daylight: Allevia's team at their desks, and the office dogs in the game room" fetchpriority="high"></figure></div></section>
+<section class="legal blog"><div class="wrap blog__in">
+<nav class="blog__nav" aria-label="On this page">
+<div class="legal__toc blog__toc"><p class="legal__toc-h">On this page</p><ol><li><a href="#the-problem-context-lives-in-one-head">The problem: context lives in one head</a></li><li><a href="#what-we-built">What we built</a></li><li><a href="#why-a-graph-not-just-vectors">Why a graph, not just vectors</a></li><li><a href="#architecture-at-a-glance">Architecture at a glance</a></li><li><a href="#one-graph-per-business">One graph per business</a></li><li><a href="#schema-in-numbers">Schema in numbers</a></li><li><a href="#how-a-turn-runs">How a turn runs</a></li><li><a href="#every-team-one-brain">Every team, one brain</a></li><li><a href="#how-retrieval-works">How retrieval works</a></li><li><a href="#memory-with-two-clocks">Memory with two clocks</a></li><li><a href="#keeping-the-brain-clean-as-it-grows">Keeping the brain clean as it grows</a></li><li><a href="#how-fast-it-is">How fast it is</a></li><li><a href="#what-we-measured-8-fewer-tokens">What we measured: 8× fewer tokens</a></li><li><a href="#war-stories-what-falkordb-taught-us">War stories: what FalkorDB taught us</a></li><li><a href="#what-isn-t-there-yet">What isn't there yet</a></li><li><a href="#try-it">Try it</a></li></ol></div>
+<details class="legal__toc blog__toc-m"><summary class="legal__toc-h">On this page</summary><ol><li><a href="#the-problem-context-lives-in-one-head">The problem: context lives in one head</a></li><li><a href="#what-we-built">What we built</a></li><li><a href="#why-a-graph-not-just-vectors">Why a graph, not just vectors</a></li><li><a href="#architecture-at-a-glance">Architecture at a glance</a></li><li><a href="#one-graph-per-business">One graph per business</a></li><li><a href="#schema-in-numbers">Schema in numbers</a></li><li><a href="#how-a-turn-runs">How a turn runs</a></li><li><a href="#every-team-one-brain">Every team, one brain</a></li><li><a href="#how-retrieval-works">How retrieval works</a></li><li><a href="#memory-with-two-clocks">Memory with two clocks</a></li><li><a href="#keeping-the-brain-clean-as-it-grows">Keeping the brain clean as it grows</a></li><li><a href="#how-fast-it-is">How fast it is</a></li><li><a href="#what-we-measured-8-fewer-tokens">What we measured: 8× fewer tokens</a></li><li><a href="#war-stories-what-falkordb-taught-us">War stories: what FalkorDB taught us</a></li><li><a href="#what-isn-t-there-yet">What isn't there yet</a></li><li><a href="#try-it">Try it</a></li></ol></details>
+</nav>
+<article class="legal__body blog__body"><p>Being a founder isn't easy. Hundreds of things land on your plate every day, and getting all that context to your team is a job of its own.</p>
+<p>Allevia is our answer, and our entry for Graph Hacks: Context for AI Agents, FalkorDB's hackathon. We built it in four days, 15 to 18 October 2026, in more than 800 commits. Here is how it works, what we measured, and what broke.</p>
+<h2 id="the-problem-context-lives-in-one-head">The problem: context lives in one head</h2>
+<p><strong>Every &quot;why&quot; in a small business comes back to the founder, because the context lives nowhere else.</strong></p>
+<p>Why a price changed. What was promised to which client. Which post brought the enquiries. The founder knows. The team mostly doesn't, and the tools never do.</p>
+<p>The inbox doesn't know about the analytics. The ad account doesn't know the checkout is broken, so it keeps spending.</p>
+<p>Most AI tools don't fix this. They start each chat from nothing, or from a pile of pasted documents.</p>
+<h2 id="what-we-built">What we built</h2>
+<p><strong>A company brain per business, and a team of 13 AI agents that must read it before they act.</strong></p>
+<p>Each business gets one FalkorDB graph. It is built from the website, the founder's connected tools, uploaded documents and conversations. Every fact keeps its source and its date.</p>
+<p>The team works in nine departments: The Chief, Data Detective, Growth Hacker, Miss Influencer, Techie, Firefighter, Bug Hunter, Memory Keeper, Wordsmith, Fact Checker, Number Cruncher, Deal Closer and Taskmaster. The Chief takes each request and decides who does what. Each agent's instructions say what to read in the brain first, before any outside tool.</p>
+<p>Nothing goes out without the founder's OK. A post, an email, a fix or an ad change arrives as a card, on the web or in Discord.</p>
+<p>The live demo has three businesses:</p>
+<ul><li><strong>Aamdani</strong>, our own startup, with Gmail, Analytics, Search Console and Instagram connected for real.</li><li><strong>AVS Atelier</strong>, an architecture and interiors studio, built from its website and Instagram.</li><li><strong>Blue Tokai Coffee</strong>, a known brand. Its public data is real. Its private side (orders, payments, ad spend) is sample numbers, labelled as samples on every screen.</li></ul>
+<h2 id="why-a-graph-not-just-vectors">Why a graph, not just vectors</h2>
+<p><strong>The honest answer to &quot;why&quot; is a path, and paths live in a graph.</strong></p>
+<p>Listen to what founders ask. &quot;Why did online orders drop this week?&quot; &quot;What breaks if the Instagram token expires?&quot; &quot;Why did we stop posting daily stories?&quot;</p>
+<p>None of these is a lookup. Each answer is a chain: from a number, to the step that fell, to the release that changed it, to the person who owns the fix.</p>
+<p>Vector search finds text that sounds like the question. That is a good place to start. But it can't tell you that a payment error began the day of a release, or that the release changed the payment page. Those are links.</p>
+<p>So we use both. Search finds where to start. The graph explains.</p>
+<h2 id="architecture-at-a-glance">Architecture at a glance</h2>
+<p><strong>One server for the team, one FalkorDB for the brains, and the founder's tools at the edge.</strong></p>
+<figure class="blog__fig"><img src="../assets/architecture-1l1SGHee.png" alt="Architecture: the founder, Allevia's server and agents, FalkorDB's graphs, and the tools through Composio" loading="lazy"><figcaption>Architecture: the founder, Allevia's server and agents, FalkorDB's graphs, and the tools through Composio</figcaption></figure>
+<p>The founder talks to Allevia on the web or in Discord. The server runs the 13 agents (on the Claude Agent SDK), their graph tools, the answer checks and the approval cards.</p>
+<p>Every read an agent makes goes to FalkorDB as <code>GRAPH.RO_QUERY</code>, so the database itself refuses a write. Writes go through our own upsert code and a gate.</p>
+<p>The founder's tools connect through Composio. Facts flow in from them, and actions go out through them only after an OK.</p>
+<figure class="blog__fig"><img src="../assets/integrations-DimCMp0u.jpg" alt="The integrations page: tools for every team" loading="lazy"><figcaption>The integrations page: tools for every team</figcaption></figure>
+<h2 id="one-graph-per-business">One graph per business</h2>
+<p><strong>Isolation is the graph boundary, not a <code>WHERE</code> clause.</strong></p>
+<figure class="blog__fig"><img src="../assets/graph-per-business-C4t2LZrK.png" alt="One FalkorDB server: a graph per business, the registry and the shared reference graph" loading="lazy"><figcaption>One FalkorDB server: a graph per business, the registry and the shared reference graph</figcaption></figure>
+<p>Each business is its own graph, named <code>allevia_&lt;slug&gt;</code>. No query in the product filters by tenant, and no agent tool accepts a graph name. A request is bound to one graph before any tool runs.</p>
+<p>Two more graphs sit beside them. <code>allevia_meta</code> is the registry: one <code>Tenant</code> node per business, plus accounts, sessions and invites. <code>allevia_reference</code> holds general know-how, such as playbook rules, once for everyone, read-only.</p>
+<figure class="blog__fig"><img src="../assets/three-graphs-h2rsGcvs.jpg" alt="Three businesses, three graphs" loading="lazy"><figcaption>Three businesses, three graphs</figcaption></figure>
+<p>When we recorded the demo, Blue Tokai's graph held 2,187 things, Aamdani's 3,390 and AVS Atelier's 271. Each one can be exported, measured (<code>GRAPH.MEMORY USAGE</code>) or erased on its own.</p>
+<h2 id="schema-in-numbers">Schema in numbers</h2>
+<p><strong>A small, strict schema: every node has a type, every edge has two clocks and a source.</strong></p>
+<div class="table-wrap"><table class="ledger blog__table"><thead><tr><th scope="col">What</th><th scope="col">Count</th><th scope="col">Where</th></tr></thead><tbody><tr><td data-label="What">Node types</td><td data-label="Count">46</td><td data-label="Where"><code>ENTITY_TYPES</code> in <code>src/graph/schema.ts</code></td></tr><tr><td data-label="What">Relationship types</td><td data-label="Count">68</td><td data-label="Where"><code>REL_TYPES</code></td></tr><tr><td data-label="What">Allowed (from, type, to) patterns</td><td data-label="Count">386</td><td data-label="Where"><code>ALLOWED_PATTERNS</code>; anything else is refused</td></tr><tr><td data-label="What">One-holder relationships</td><td data-label="Count">7</td><td data-label="Where"><code>FUNCTIONAL_RELS</code></td></tr><tr><td data-label="What">Bookkeeping properties on every edge</td><td data-label="Count">11</td><td data-label="Where"><code>EDGE_META_PROPS</code></td></tr><tr><td data-label="What">Indexes per business graph</td><td data-label="Count">12</td><td data-label="Where"><code>INDEXES</code> in <code>src/graph/indexes.ts</code></td></tr></tbody></table></div>
+<p>Every node carries two labels: <code>Entity</code> and its type, such as <code>Task</code>. The id index sits on <code>Entity.id</code>, with UNIQUE and MANDATORY constraints. That one index serves every lookup by id, whatever the type.</p>
+<p>A third label, <code>Searchable</code>, goes on 43 of the 46 types. It leaves out number readings (<code>Observation</code>), old versions and text chunks. The full-text and vector indexes sit on <code>Searchable</code>, so search only holds what search may return. We learned this the hard way: readings each had a display name, a business adds about 160,000 a year, and they crowded real things out of the ranking.</p>
+<h2 id="how-a-turn-runs">How a turn runs</h2>
+<p><strong>Plan, work in parallel, review, revise once, answer, then check every claim.</strong></p>
+<figure class="blog__fig"><img src="../assets/turn-flow-B98Ew4Mg.png" alt="A turn: recall, plan, desks in parallel, reviews, the answer, the checks, the cards" loading="lazy"><figcaption>A turn: recall, plan, desks in parallel, reviews, the answer, the checks, the cards</figcaption></figure>
+<ol><li><strong>Recall.</strong> The server reads what the brain already knows: earlier turns on the same things, notes, open cards.</li><li><strong>Plan.</strong> The Chief picks up to three desks for an ordinary question, and up to five for a &quot;why did this drop?&quot; or a review of the whole business.</li><li><strong>Work.</strong> Desks run in parallel, each with only its own tools. Each writes a <code>Finding</code> node with citations. That node is the handoff.</li><li><strong>Review.</strong> Each Finding gets at most two reviewers. Number Cruncher checks figures, Fact Checker checks claims, Wordsmith checks voice, Bug Hunter checks Techie. A &quot;fix&quot; earns exactly one revision.</li><li><strong>Answer.</strong> The Chief writes the answer from the Findings, then calls <code>show_path</code> with the nodes that explain it.</li><li><strong>Check.</strong> The server checks citations and numbers against what the tools returned in this turn.</li></ol>
+<p>Then the cards wait, and the turn is saved to the brain: the <code>Turn</code>, every <code>Finding</code>, every node it touched and cited.</p>
+<h2 id="every-team-one-brain">Every team, one brain</h2>
+<p><strong>Connecting the tools is not about more dashboards. It is so what one team learns reaches the others.</strong></p>
+<p>Allevia connects through Composio, whose catalogue has over 1,600 tools: mail, calendars, analytics, ads, shops, CRMs. Whatever comes in lands in the same graph, so the ads team, the content team and the website team read the same facts.</p>
+<p>On Blue Tokai we asked one question: &quot;What did our ads and posts teach us this month, and what should content, ads and the website team each do next?&quot; Seven teammates answered together in 102 seconds.</p>
+<figure class="blog__fig"><img src="../assets/ads-answer-ApJmfexu.jpg" alt="The Chief's answer: the costliest campaign, found (sample numbers)" loading="lazy"><figcaption>The Chief's answer: the costliest campaign, found (sample numbers)</figcaption></figure>
+<ul><li><strong>Ads</strong> found the costliest campaign, the new-roast launch, at about 1.7 times the middle campaign's cost per sign-up. It was sending people to a checkout that was failing UPI payments. Growth Hacker proposed a pause, and moving the money to brand search.</li><li><strong>Content</strong> drafted test posts, each ending with the business's main goal: &quot;Visit your nearest café&quot;. Fact Checker caught one caption that implied a free tasting.</li><li><strong>Website</strong> got the payment fix, and a Contact page fix ranked by how much it costs café visits.</li></ul>
+<figure class="blog__fig"><img src="../assets/cafe-cta-2rkkqAQF.jpg" alt="A post made for café visits" loading="lazy"><figcaption>A post made for café visits</figcaption></figure>
+<p>All three wait for the founder's OK. The numbers here are Blue Tokai's sample numbers, and the answer says so.</p>
+<figure class="blog__fig"><img src="../assets/pause-card-aIxVk2nj.jpg" alt="The pause card, waiting in Needs your OK" loading="lazy"><figcaption>The pause card, waiting in Needs your OK</figcaption></figure>
+<h2 id="how-retrieval-works">How retrieval works</h2>
+<p><strong>Search finds where to start, Cypher walks the links, the server checks the claims, and the path is drawn.</strong></p>
+<figure class="blog__fig"><img src="../assets/retrieval-pipeline-D91YXMUD.png" alt="The retrieval pipeline: find where to start, walk the graph, check the answer, show the path" loading="lazy"><figcaption>The retrieval pipeline: find where to start, walk the graph, check the answer, show the path</figcaption></figure>
+<h3>1. Find where to start</h3>
+<p>There are three entry points: vector search (by meaning), full-text search (by words), and an exact name. Embeddings, the numbers behind vector search, are 384 numbers per text, from a multilingual model that runs on our own server. No API call, no cost per search.</p>
+<figure class="blog__fig"><img src="../assets/entry-points-C8GSxDgc.jpg" alt="The two search entry points, in the demo video" loading="lazy"><figcaption>The two search entry points, in the demo video</figcaption></figure>
+<p>Here are two of the four searches the <code>search</code> tool sends at once, from <code>src/agent/tools/search.ts</code>:</p>
+<pre class="blog__code" data-lang="cypher"><code><span class="tk-k">CALL</span> db.idx.fulltext.queryNodes(<span class="tk-s">'Searchable'</span>, $q) <span class="tk-k">YIELD</span> node, score
+<span class="tk-k">WITH</span> node, score <span class="tk-k">WHERE</span> any(l <span class="tk-k">IN</span> labels(node) <span class="tk-k">WHERE</span> l <span class="tk-k">IN</span> $types) <span class="tk-k">AND</span> <span class="tk-k">NOT</span> node:Chunk …
+<span class="tk-k">RETURN</span> … <span class="tk-k">ORDER</span> <span class="tk-k">BY</span> score <span class="tk-k">DESC</span>, node.id <span class="tk-k">LIMIT</span> $k
+
+<span class="tk-k">CALL</span> db.idx.vector.queryNodes(<span class="tk-s">'Chunk'</span>, <span class="tk-s">'textEmbedding'</span>, $k, vecf32($v)) <span class="tk-k">YIELD</span> node, score
+<span class="tk-k">OPTIONAL</span> <span class="tk-k">MATCH</span> (d:Document)-[:HAS_CHUNK]-&gt;(node)
+<span class="tk-k">RETURN</span> … <span class="tk-k">ORDER</span> <span class="tk-k">BY</span> score <span class="tk-k">ASC</span>, node.id</code></pre>
+<p>A matching chunk answers as its source document, so citations point at sources. The <code>node.id</code> at the end of each <code>ORDER BY</code> is load-bearing; the war stories say why.</p>
+<p>The result lists are merged by reciprocal rank: each hit scores one over (60 plus its rank) in every list it appears in. It needs no tuning, and it doesn't care that vector and full-text scores live on different scales.</p>
+<pre class="blog__code" data-lang="ts"><code><span class="tk-k">const</span> RRF_K = <span class="tk-n">60</span>;
+<span class="tk-c">// …</span>
+<span class="tk-k">const</span> add = (key: string, node: NodeRow, rank: number, via: string, extra: Partial&lt;Hit&gt; = {}) =&gt; {
+  <span class="tk-k">const</span> h = hits.get(key) ?? { node, score: <span class="tk-n">0</span>, via: <span class="tk-k">new</span> Set&lt;string&gt;(), snippetRank: Infinity };
+  h.score += <span class="tk-n">1</span> / (RRF_K + rank);
+  h.via.add(via);
+  <span class="tk-c">// …</span>
+};
+fuseEntities(ftE, <span class="tk-s">&quot;text&quot;</span>);
+fuseChunks(ftC, <span class="tk-s">&quot;chunk-text&quot;</span>);
+fuseEntities(vE, <span class="tk-s">&quot;vector&quot;</span>);
+fuseChunks(vC, <span class="tk-s">&quot;chunk-vector&quot;</span>);</code></pre>
+<p>An unknown name comes back as &quot;I don't have that in your records&quot;, never as an empty walk that reads like &quot;nothing depends on it&quot;.</p>
+<h3>2. Walk the graph</h3>
+<p>The agents have 21 graph tools, and every one is a Cypher query or a graph algorithm. &quot;What breaks if this stops&quot; is one query per hop over <code>DEPENDS_ON</code>, <code>AFFECTS</code> and <code>BLOCKS</code>, so the app can show one step away next to four steps away.</p>
+<p>The links behind an answer come from FalkorDB's shortest-path procedure, from <code>src/graph/algorithms.ts</code>:</p>
+<pre class="blog__code" data-lang="cypher"><code><span class="tk-k">MATCH</span> (a:Entity {id:$from}), (b:Entity {id:$to})
+<span class="tk-k">CALL</span> algo.SPpaths({sourceNode: a, targetNode: b, relDirection: <span class="tk-s">'both'</span>, maxLen: $maxLen, pathCount: $pathCount,
+  relTypes: $rels, costProp: <span class="tk-s">'closedCost'</span>, maxCost: $maxCost})
+<span class="tk-k">YIELD</span> path <span class="tk-k">RETURN</span> path</code></pre>
+<figure class="blog__fig"><img src="../assets/sppaths-path-CJsENy-8.jpg" alt="The real algo.SPpaths call, and the path it lights" loading="lazy"><figcaption>The real algo.SPpaths call, and the path it lights</figcaption></figure>
+<p>PageRank, a score for how much of the business leads to a thing, ranks what matters. It runs on a cached copy of the graph that holds current edges only (explained in the memory section). FalkorDB caps a result at 10,000 rows, so the scores come back packed into lists of 5,000:</p>
+<pre class="blog__code" data-lang="cypher"><code><span class="tk-k">CALL</span> algo.pageRank(<span class="tk-s">'Searchable'</span>, <span class="tk-k">null</span>) <span class="tk-k">YIELD</span> node, score
+<span class="tk-k">WITH</span> node.id <span class="tk-k">AS</span> id, score <span class="tk-k">AS</span> v <span class="tk-k">WHERE</span> id <span class="tk-k">IS</span> <span class="tk-k">NOT</span> <span class="tk-k">NULL</span>
+<span class="tk-k">WITH</span> collect([id, v]) <span class="tk-k">AS</span> xs <span class="tk-k">UNWIND</span> range(<span class="tk-n">0</span>, size(xs) - <span class="tk-n">1</span>, $page) <span class="tk-k">AS</span> i <span class="tk-k">RETURN</span> xs[i..i + $page] <span class="tk-k">AS</span> part</code></pre>
+<p>Agents can also write their own Cypher, through one tool with five guards, from <code>src/agent/tools/cypher.ts</code>:</p>
+<pre class="blog__code" data-lang="ts"><code><span class="tk-k">const</span> READ_PROCS = <span class="tk-k">new</span> Set([
+  <span class="tk-s">&quot;db.labels&quot;</span>, <span class="tk-s">&quot;db.relationshiptypes&quot;</span>, <span class="tk-s">&quot;db.propertykeys&quot;</span>, <span class="tk-s">&quot;db.indexes&quot;</span>, <span class="tk-s">&quot;db.constraints&quot;</span>, <span class="tk-s">&quot;db.meta.stats&quot;</span>,
+  <span class="tk-s">&quot;db.idx.fulltext.querynodes&quot;</span>, <span class="tk-s">&quot;db.idx.fulltext.queryrelationships&quot;</span>, <span class="tk-s">&quot;db.idx.vector.querynodes&quot;</span>, <span class="tk-c">// …</span>
+]);
+<span class="tk-c">// …</span>
+<span class="tk-k">const</span> reason = writeReason(base, args.params); <span class="tk-c">// no write keyword, only READ_PROCS, no reduce()</span>
+<span class="tk-k">if</span> (reason) <span class="tk-k">throw</span> <span class="tk-k">new</span> InputError(reason, { refused: <span class="tk-k">true</span> });
+<span class="tk-k">const</span> bounded = boundRows(groupInWith(base), args.params, CYPHER_ROW_CAP + <span class="tk-n">1</span>);
+raw = <span class="tk-k">await</span> ro(ctx, bounded.query, bounded.params, CYPHER_TIMEOUT_MS); <span class="tk-c">// GRAPH.RO_QUERY, 5 s</span></code></pre>
+<p>The text check comes first. <code>GRAPH.RO_QUERY</code> is the guard that can't be talked around.</p>
+<h3>3. Check the answer</h3>
+<p>Before the founder sees an answer, the server checks it. Every <code>[[node-id]]</code> the answer cites must have been returned by a tool in this turn. Every number must appear in the tools' data, allowing for rounding, percentages, &quot;55k&quot; and &quot;₹1.2 lakh&quot;. An answer that used sample data must say so, and one built on data over a week old must say &quot;as of&quot; a date.</p>
+<p>A failed check never hides the answer. It shows as &quot;unverified&quot;, and the result is stored on the turn.</p>
+<h3>4. Show the path</h3>
+<p>The Chief names the nodes behind the answer, in order. For each pair, the server looks for a direct edge, then a shortest path of up to four hops, and only through the business's own records, not through Allevia's own cards. The app lights that path on the map.</p>
+<figure class="blog__fig"><img src="../assets/answer-path-pLnZXaqK.jpg" alt="The path under a real answer: from the funnel to the checkout release" loading="lazy"><figcaption>The path under a real answer: from the funnel to the checkout release</figcaption></figure>
+<p>On Blue Tokai, &quot;Why did online orders drop this week?&quot; walks from the online store to the UPI payment step, the payment error, and the checkout release that brought it. Those numbers are samples, and the answer says so.</p>
+<h2 id="memory-with-two-clocks">Memory with two clocks</h2>
+<p><strong>Nothing is deleted. A fact that stops being true is closed with a date and kept.</strong></p>
+<p>A business changes its mind all the time. A task changes hands. A decision replaces an older one. If memory overwrites, the agents end up confidently wrong.</p>
+<figure class="blog__fig"><img src="../assets/two-clocks-SbRF3Cn5.png" alt="One fact, two clocks: an owner closed and kept, the new owner current" loading="lazy"><figcaption>One fact, two clocks: an owner closed and kept, the new owner current</figcaption></figure>
+<p>So every edge carries two clocks. Valid time (<code>since</code>, <code>until</code>) says when a fact was true. Record time (<code>recordedAt</code>, <code>retiredAt</code>) says when we learned it, and when we learned it had stopped. Every edge also carries its source (<code>src</code>) and its date (<code>asOf</code>).</p>
+<p>Every tool takes an <code>asOf</code> date, so &quot;who owned this task on 1 October?&quot; has a real answer. In our synthetic test company, the task &quot;Fix Instagram token refresh&quot; is owned by Priya now; ask as of 1 October and the answer is the founder.</p>
+<p>Closing an edge is one <code>SET</code>, from <code>src/graph/edges.ts</code>:</p>
+<pre class="blog__code" data-lang="ts"><code><span class="tk-k">const</span> CLOSE_SET = (v: string, reason: string) =&gt;
+  <span class="tk-s">`SET ${v}.until = CASE WHEN ${v}.since &gt; $end THEN ${v}.since ELSE $end END, ${v}.retiredAt = coalesce(${v}.retiredAt, $now), `</span> +
+  <span class="tk-s">`${v}.retiredAsOfMs = coalesce(${v}.retiredAsOfMs, $endedAsOf), ${v}.closedCost = $cost, ${v}.closeReason = ${reason}`</span>;</code></pre>
+<p>Some facts can only have one holder at a time. A task has one current owner. A decision is replaced by at most one successor. Seven such rules live in the schema:</p>
+<pre class="blog__code" data-lang="ts"><code><span class="tk-k">export</span> <span class="tk-k">const</span> FUNCTIONAL_RELS: FunctionalRule[] = [
+  { rel: <span class="tk-s">&quot;OWNS&quot;</span>, toType: <span class="tk-s">&quot;Task&quot;</span>, key: <span class="tk-s">&quot;to&quot;</span>, why: <span class="tk-s">&quot;a task has one current owner&quot;</span> },
+  { rel: <span class="tk-s">&quot;SUPERSEDES&quot;</span>, key: <span class="tk-s">&quot;to&quot;</span>, why: <span class="tk-s">&quot;a decision (or rule, doc…) is superseded by at most one successor&quot;</span> },
+  <span class="tk-c">// …</span>
+  { rel: <span class="tk-s">&quot;DERIVED_FROM&quot;</span>, fromType: <span class="tk-s">&quot;Asset&quot;</span>, key: <span class="tk-s">&quot;from&quot;</span>, why: <span class="tk-s">&quot;an asset has one parent: the one it was made from&quot;</span> },
+];</code></pre>
+<p>The edge write is a single Cypher statement of about 50 lines. It reads the current and closed edges, finds a replay, and closes the old holder of a one-holder slot in the same statement as it opens the new one. Facts can arrive in any order; an older source never overrules a newer one. Re-running an ingest adds nothing.</p>
+<p>When a task, a decision or a goal changes, its old state is saved as a <code>Version</code> node one hop away. Readings are never overwritten either: each is its own <code>Observation</code> node, with a time window, a date and a source.</p>
+<p>One FalkorDB detail shaped all of this. The <code>algo.*</code> procedures take labels and relationship types, but they can't filter on edge properties, so they would walk a closed edge. Our fix has two halves:</p>
+<ul><li>A closed edge carries <code>closedCost = 1,000,000</code>, and the shortest-path call sets <code>maxCost</code> just under it. Closed edges are pruned inside the search.</li><li>PageRank and topic grouping run on a slim copy of the graph with current edges only. Building it ourselves took about 110 ms at 20,000 nodes, against 5.3 seconds for <code>GRAPH.COPY</code>, which also rebuilds every search index. The copy is cached until a write lands.</li></ul>
+<p>Meetings are memory too. Paste the notes, say &quot;remember this meeting&quot;, and Memory Keeper files the decisions, tasks and people, linked to what is already there, with the notes as the source.</p>
+<figure class="blog__fig"><img src="../assets/meeting-saved-KkdRIGQw.jpg" alt="A meeting saved to the brain, with the notes as proof (sample notes)" loading="lazy"><figcaption>A meeting saved to the brain, with the notes as proof (sample notes)</figcaption></figure>
+<h2 id="keeping-the-brain-clean-as-it-grows">Keeping the brain clean as it grows</h2>
+<p><strong>A brain that only grows gets slow, costly and noisy. So we measured ours, then put a gate on the door.</strong></p>
+<p>On 15 October, Aamdani's first load was 3,799 nodes and 11,897 edges. The next day, use alone added 283 nodes and 4,911 edges: conversations, findings, approvals, and the links from each answer to what it read. By then, 235 facts that had stopped being true were closed with a date, not deleted.</p>
+<p>Storage, measured on 17 October:</p>
+<div class="table-wrap"><table class="ledger blog__table"><thead><tr><th scope="col">Business</th><th scope="col">Things</th><th scope="col">Links</th><th scope="col">Memory, all in</th></tr></thead><tbody><tr><td data-label="Business">AVS Atelier (website and Instagram)</td><td data-label="Things">544</td><td data-label="Links">2,222</td><td data-label="Memory, all in">about 5 MB</td></tr><tr><td data-label="Business">A café from its website only (test)</td><td data-label="Things">612</td><td data-label="Links">2,497</td><td data-label="Memory, all in">about 6 MB</td></tr><tr><td data-label="Business">Shiftly (our synthetic demo)</td><td data-label="Things">758</td><td data-label="Links">3,103</td><td data-label="Memory, all in">about 7 MB</td></tr><tr><td data-label="Business">Aamdani (website, documents, code, two days of use)</td><td data-label="Things">4,084</td><td data-label="Links">16,831</td><td data-label="Memory, all in">about 40 MB</td></tr></tbody></table></div>
+<p>That is about 10 KB per thing, with links, vectors, indexes and the server's own overhead shared out.</p>
+<p>We also found waste. General know-how, such as about 200 playbook rules, had been copied into every business graph. So on 18 October we built four fixes:</p>
+<ul><li><strong>A shared reference graph</strong>, <code>allevia_reference</code>, read-only and loaded once. A business keeps a small stub of a shared rule only when one of its own facts points at it, so citations still resolve.</li><li><strong>A write gate.</strong> Every new node needs a known type, a source and a date, or it is refused and logged.</li><li><strong>Entity resolution on write.</strong> A new person, business or product that matches an existing one by name or email is linked to it, not created again. A first name alone is not enough.</li><li><strong>A hygiene report.</strong> It lists closed facts, old readings and cold, rarely linked things. It changes nothing; a person decides.</li></ul>
+<p>The gate's core, from <code>src/graph/gate.ts</code>:</p>
+<pre class="blog__code" data-lang="ts"><code><span class="tk-k">export</span> <span class="tk-k">function</span> gateNode(n: NodeInput, o: Pick&lt;GateOpts, <span class="tk-s">&quot;src&quot;</span> | <span class="tk-s">&quot;asOf&quot;</span>&gt;): NodeInput {
+  <span class="tk-k">if</span> (!isEntityType(n.<span class="tk-k">type</span>)) <span class="tk-k">throw</span> <span class="tk-k">new</span> RefusedWrite(<span class="tk-s">`unknown label ${JSON.stringify(n.type)}: not in the schema`</span>);
+  <span class="tk-k">const</span> src = n.src ?? o.src;
+  <span class="tk-k">const</span> asOf = n.asOf ?? o.asOf;
+  <span class="tk-k">if</span> (!src) <span class="tk-k">throw</span> <span class="tk-k">new</span> RefusedWrite(<span class="tk-s">&quot;no source (src): every new node says where it came from&quot;</span>);
+  <span class="tk-k">if</span> (!asOf) <span class="tk-k">throw</span> <span class="tk-k">new</span> RefusedWrite(<span class="tk-s">&quot;no date (asOf): every new node says as of when&quot;</span>);
+  <span class="tk-k">return</span> n.src === src &amp;&amp; n.asOf === asOf ? n : { ...n, src, asOf };
+}</code></pre>
+<p>Rolling old readings up into weeks, archiving old closed facts, and summarising clusters are planned, not built.</p>
+<h2 id="how-fast-it-is">How fast it is</h2>
+<p><strong>Walks take milliseconds, even on a graph many times our biggest business.</strong></p>
+<p>We timed the tools on 15 October, on a laptop, on FalkorDB 6.0.2. One graph is our small synthetic company. The other was built for timing: 37,240 nodes and 49,983 edges.</p>
+<div class="table-wrap"><table class="ledger blog__table"><thead><tr><th scope="col">Query</th><th scope="col">Small company (149 nodes)</th><th scope="col">Test graph (37,240 nodes)</th></tr></thead><tbody><tr><td data-label="Query">What breaks, 1 step / 4 steps</td><td data-label="Small company (149 nodes)">7 ms / 7 ms</td><td data-label="Test graph (37,240 nodes)">5–16 ms / 7–36 ms</td></tr><tr><td data-label="Query">Up to 3 shortest paths, 6 hops</td><td data-label="Small company (149 nodes)">26 ms</td><td data-label="Test graph (37,240 nodes)">135–218 ms</td></tr><tr><td data-label="Query">PageRank, first call / cached</td><td data-label="Small company (149 nodes)">51 ms</td><td data-label="Test graph (37,240 nodes)">696 ms / 12 ms</td></tr><tr><td data-label="Query">Topic groups (label propagation)</td><td data-label="Small company (149 nodes)">4 ms</td><td data-label="Test graph (37,240 nodes)">136 ms</td></tr><tr><td data-label="Query">Full-text search</td><td data-label="Small company (149 nodes)">2 ms (whole tool)</td><td data-label="Test graph (37,240 nodes)">under 1.2 ms</td></tr></tbody></table></div>
+<p>These are orders of magnitude, not a benchmark. The walk is never the slow part. The model is.</p>
+<h2 id="what-we-measured-8-fewer-tokens">What we measured: 8× fewer tokens</h2>
+<p><strong>On a real business, one agent on the graph read 8× fewer tokens than pasting the documents, and finished faster.</strong></p>
+<p>We tested that on 17 October, on Aamdani, with two real questions: &quot;What breaks if the Instagram token expires?&quot; and &quot;Why did we pause daily stories and image posts?&quot;</p>
+<p>Each question was answered three ways, with the same model and rules. First, with all 114 of the business's documents pasted into the prompt. Second, by one agent with only the graph tools. Third, by the full team, as shipped.</p>
+<aside class="blog__callout"><span class="blog__callout-n">8×</span><span class="blog__callout-t">fewer tokens than pasting the documents: 75,000 against 604,000</span></aside>
+<div class="table-wrap"><table class="ledger blog__table"><thead><tr><th scope="col">Way of answering</th><th scope="col">Tokens read, both questions</th><th scope="col">Time</th><th scope="col">Against pasting</th></tr></thead><tbody><tr><td data-label="Way of answering">Paste all 114 documents</td><td data-label="Tokens read, both questions">603,665</td><td data-label="Time">44 s</td><td data-label="Against pasting">the starting point</td></tr><tr><td data-label="Way of answering">One agent on the graph</td><td data-label="Tokens read, both questions">75,043</td><td data-label="Time">25 s</td><td data-label="Against pasting">8× fewer tokens, 43% less time</td></tr><tr><td data-label="Way of answering">The full team, as shipped</td><td data-label="Tokens read, both questions">174,501</td><td data-label="Time">70 s</td><td data-label="Against pasting">3.5× fewer tokens, 59% more time</td></tr></tbody></table></div>
+<p>Tokens are the units a model reads and is billed by. The agent's tools handed it only 1,200 to 2,100 tokens of the business's own records per answer.</p>
+<figure class="blog__fig"><img src="../assets/tokens-8x-19HFhz2q.jpg" alt="604k tokens against 75k" loading="lazy"><figcaption>604k tokens against 75k</figcaption></figure>
+<p>The limits, said plainly:</p>
+<ul><li>The team reads more than one agent: it plans, reviews and checks. It buys the checked answer, the path and the cards.</li><li>On our small synthetic company, pasting the documents was cheaper. The graph wins as the business grows.</li><li>Five questions on two businesses is a measurement, not a benchmark. Every turn now stores its own token count.</li></ul>
+<h2 id="war-stories-what-falkordb-taught-us">War stories: what FalkorDB taught us</h2>
+<p><strong>A new engine rewards guard rails. Most of ours exist because something broke.</strong></p>
+<p>We built on FalkorDB 6.0.2, the new Rust engine, released on 29 September. It was fast and expressive. It also taught us a few things.</p>
+<h3>Three queries that took the server down</h3>
+<p>On 15 October our shared database crashed several times. We traced the crashes to three query shapes that panic the module:</p>
+<ul><li>a full sort over 21 or more tied rows that hold maps with nulls (Rust's sort only checks its ordering rule from 21 rows up, so a query can pass for months);</li><li>a NaN (&quot;not a number&quot;, such as 0 divided by 0) in a sort key;</li><li>an aggregate (a count or a sum) next to a column that can be null.</li></ul>
+<p>The last one was already reported upstream (issue #3150), with a fix open in PR #3229 when we last checked, on 16 October.</p>
+<p>A panic takes every graph on the server down with it, and unsaved writes with it. Nothing can catch it afterwards. So we stop it before it is sent: the client refuses those shapes, and a test reads every Cypher string in our code and fails on them. The rule we live by: <strong>the last key of every <code>ORDER BY</code> is unique</strong>. We fixed 25 sorts and rewrote 13 queries to get there.</p>
+<h3>Counts that come out short</h3>
+<p>On 6.0.2, parallel edges between the same two nodes collapse under <code>count</code>, <code>collect</code> or <code>sum</code> when the query doesn't refer to the edge. We keep parallel edges on purpose: a fact that ended and came back is two edges. A lint rule (an automatic check on our code) now makes every aggregate bind and use its edge:</p>
+<pre class="blog__code" data-lang="cypher"><code><span class="tk-c">// two R edges from a to b, one closed and one open: this counts 1</span>
+<span class="tk-k">MATCH</span> (a:Entity {id:<span class="tk-s">'task:a'</span>})-[:R]-&gt;(b) <span class="tk-k">RETURN</span> count(b) <span class="tk-k">AS</span> c
+
+<span class="tk-c">// the edge is bound and used: this counts 2</span>
+<span class="tk-k">MATCH</span> (a:Entity {id:<span class="tk-s">'task:a'</span>})-[e:R]-&gt;(b) <span class="tk-k">WHERE</span> ID(e) &gt;= <span class="tk-n">0</span> <span class="tk-k">RETURN</span> count(b) <span class="tk-k">AS</span> c</code></pre>
+<p><code>tests/graph/parallel-edges.test.ts</code> holds the lint to the server: it flags exactly the shapes the server undercounts. The lint has already caught real bugs, the latest in the hygiene report on 18 October.</p>
+<h3>Labels pick the index</h3>
+<p>FalkorDB picks an index per label in the pattern. Our id index is on <code>Entity</code>, so <code>(d:Document {id:$x})</code> scans every Document, while <code>(d:Entity:Document {id:$x})</code> is an index lookup. A second lint rule requires <code>Entity</code> on every id lookup, and a test checks the real plans with <code>GRAPH.EXPLAIN</code>.</p>
+<h3>Limits that don't say so</h3>
+<p>A result over 10,000 rows drops the rest without a word, so every large read pages or packs its rows. The timeout is checked between records, not inside one expression: we measured a big <code>reduce()</code> running 4.5 seconds on a 2-second timeout. So the agents' Cypher tool refuses <code>reduce()</code> and nested list loops.</p>
+<h3>Persistence needs care</h3>
+<p>A node created and deleted in the same query wrote nothing to the append-only file (the log the server replays on restart), so a restarted server could not load it. We now write it in two statements, and a source scan keeps it so.</p>
+<p>On 15 October the append-only file was also corrupt after a crash, and the server restart-looped on FalkorDB's own telemetry stream. The snapshot was intact, and we recovered from it. The live server now takes a checked backup to S3 every night, and a sweep clears those telemetry streams every 10 minutes.</p>
+<p>About 3,400 tests run against a real FalkorDB in throwaway graphs, never the live one.</p>
+<h2 id="what-isn-t-there-yet">What isn't there yet</h2>
+<p><strong>Two real businesses, sample numbers labelled, and no ad accounts yet.</strong></p>
+<p>Two businesses run on real data so far. No Meta or Google Ads accounts are connected, so ad numbers are samples, and answers say so. The team runs on one Claude subscription today, not a metered API.</p>
+<p>Next: roll-ups and archiving to keep each brain small, our own Google and Meta apps for connections, and a model runtime metered per business.</p>
+<h2 id="try-it">Try it</h2>
+<ul><li><strong>Live:</strong> <a href="https://13-232-139-42.sslip.io">https://13-232-139-42.sslip.io</a>. Sign up for 100 free credits, or open &quot;See the demo&quot;.</li><li><strong>Code:</strong> <a href="https://github.com/Ankit-Vohra/allevia-company-brain">https://github.com/Ankit-Vohra/allevia-company-brain</a></li><li><strong>Every query and algorithm</strong>, with its file and line: <code>docs/falkordb-queries.md</code> in the repo.</li></ul></article></div></section>
+  </main>
+  <footer class="foot band band--ink on-ink">
+  <div class="wrap foot__grid">
+    <div class="foot__about">
+      <a class="brand" href="../" aria-label="Allevia, home">allevia</a>
+      <p class="foot__line">Your company’s brain, and the team that runs on it.</p>
+      <p class="foot__mail"><a href="mailto:ankit@allevia-ai.in">ankit@allevia-ai.in</a></p>
+      <p><a class="btn btn-gold btn-sm" href="../contact/#demo">Book a demo</a></p>
+    </div>
+    <nav class="foot__col" aria-label="Product"><h2 class="foot__h">Product</h2><ul><li><a href="../product/">How it works</a></li><li><a href="../integrations/">Integrations</a></li><li><a href="../team/">Team</a></li></ul></nav>
+    <nav class="foot__col" aria-label="Company"><h2 class="foot__h">Company</h2><ul><li><a href="../about/">About</a></li><li><a href="../contact/">Contact</a></li><li><a href="../security/">Security</a></li><li><a href="../faq/">Questions</a></li></ul></nav>
+    <nav class="foot__col" aria-label="Legal"><h2 class="foot__h">Legal</h2><ul><li><a href="../privacy/">Privacy</a></li><li><a href="../terms/">Terms</a></li><li><a href="../cookies/">Cookies</a></li><li><a href="../data-deletion/">Data deletion</a></li></ul></nav>
+  </div>
+  <div class="wrap foot__base"><p>© 2026 Allevia AI</p></div>
+</footer>
+</body>
+</html>
