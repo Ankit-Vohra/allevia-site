@@ -99,7 +99,7 @@
 <span class="tk-k">CALL</span> db.idx.vector.queryNodes(<span class="tk-s">'Chunk'</span>, <span class="tk-s">'textEmbedding'</span>, $k, vecf32($v)) <span class="tk-k">YIELD</span> node, score
 <span class="tk-k">OPTIONAL</span> <span class="tk-k">MATCH</span> (d:Document)-[:HAS_CHUNK]-&gt;(node)
 <span class="tk-k">RETURN</span> … <span class="tk-k">ORDER</span> <span class="tk-k">BY</span> score <span class="tk-k">ASC</span>, node.id</code></pre>
-<p>A matching chunk answers as its source document, so citations point at sources. The <code>node.id</code> at the end of each <code>ORDER BY</code> is load-bearing; the war stories say why.</p>
+<p>A matching chunk answers as its source document, so citations point at sources. The <code>node.id</code> at the end of each <code>ORDER BY</code> keeps the order stable when scores tie.</p>
 <p>The result lists are merged by reciprocal rank: each hit scores one over (60 plus its rank) in every list it appears in. It needs no tuning, and it doesn't care that vector and full-text scores live on different scales.</p>
 <pre class="blog__code" data-lang="ts"><code><span class="tk-k">const</span> RRF_K = <span class="tk-n">60</span>;
 <span class="tk-c">// …</span>
